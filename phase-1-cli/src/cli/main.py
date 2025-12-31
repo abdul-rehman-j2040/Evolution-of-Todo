@@ -1,9 +1,8 @@
-"""CLI interface for the Todo application.
+"""Interactive CLI interface for the Todo application.
 
-Provides argparse-based command interface for managing tasks.
+Provides a menu-driven interface for managing tasks.
 """
 
-import argparse
 import sys
 from datetime import datetime
 from typing import List, Optional
@@ -73,370 +72,264 @@ def render_table(tasks: List["Todo"]) -> str:
     return "\n".join([header, separator] + rows)
 
 
-def handle_add(args: argparse.Namespace) -> int:
-    """
-    Handle the 'add' command.
+def print_banner() -> None:
+    """Print the application banner."""
+    print("\n" + "=" * 50)
+    print("         TODO APPLICATION")
+    print("=" * 50)
 
-    Args:
-        args: Parsed arguments from argparse
 
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
+def print_menu() -> None:
+    """Print the main menu."""
+    print("\n----------- MAIN MENU -----------")
+    print("1.  Add Task")
+    print("2.  View All Tasks")
+    print("3.  View Pending Tasks")
+    print("4.  View Completed Tasks")
+    print("5.  Update Task")
+    print("6.  Mark Task as Complete")
+    print("7.  Delete Task")
+    print("8.  Filter by Priority")
+    print("9.  Search Tasks")
+    print("0.  Exit")
+    print("-------------------------------")
 
-    # Parse priority
+
+def get_input(prompt: str) -> str:
+    """Get input from user with a prompt."""
+    return input(prompt).strip()
+
+
+def add_task(service: TodoService) -> None:
+    """Add a new task."""
+    print("\n--- ADD TASK ---")
+    title = get_input("Enter task title: ")
+    if not title:
+        print("Error: Title cannot be empty!")
+        return
+
+    description = get_input("Enter description (optional): ")
+    priority_input = get_input("Enter priority (high/medium/low) [default: medium]: ").lower()
+
     try:
-        priority = Priority.parse(args.priority) if args.priority else Priority.MEDIUM
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        priority = Priority.parse(priority_input) if priority_input else Priority.MEDIUM
+    except ValueError:
+        print("Invalid priority. Using MEDIUM.")
+        priority = Priority.MEDIUM
 
-    # Add task
-    task, error = service.add_task(
-        title=args.title,
-        description=args.description or "",
-        priority=priority,
-    )
+    task, error = service.add_task(title=title, description=description, priority=priority)
 
     if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
-
-    print("Task added successfully!")
-    print(f"ID: {task.id}")
-    print(f"Title: {task.title}")
-    print(f"Description: {task.description}")
-    print(f"Priority: {task.priority.value}")
-    print(f"Status: {task.status.value}")
-    print(f"Created: {format_datetime(task.created_at)}")
-
-    return 0
+        print(f"Error: {error}")
+    else:
+        print(f"\nTask added successfully!")
+        print(f"ID: {task.id} | Title: {task.title} | Priority: {task.priority.value}")
 
 
-def handle_list(args: argparse.Namespace) -> int:
-    """
-    Handle the 'list' command.
-
-    Args:
-        args: Parsed arguments from argparse
-
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
-
-    # Parse status filter
-    status_filter = None
-    if args.status and args.status != "all":
-        try:
-            status_filter = Status.parse(args.status)
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
-
-    # Get tasks
-    if status_filter:
-        tasks = service.filter_by_status(status_filter)
+def view_tasks(service: TodoService, filter_status: Optional[Status] = None) -> None:
+    """View all tasks or filtered by status."""
+    print("\n--- TASKS ---")
+    if filter_status:
+        tasks = service.filter_by_status(filter_status)
+        status_name = "Pending" if filter_status == Status.PENDING else "Completed"
+        print(f"Showing {status_name} tasks:")
     else:
         tasks = service.list_tasks()
+        print("All tasks:")
 
-    # Render output
-    if args.json:
-        import json
-        data = [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "priority": t.priority.value,
-                "status": t.status.value,
-                "created": format_datetime(t.created_at),
-            }
-            for t in tasks
-        ]
-        print(json.dumps(data, indent=2))
+    if not tasks:
+        print("No tasks found.")
     else:
         print(render_table(tasks))
 
-    return 0
 
+def update_task(service: TodoService) -> None:
+    """Update an existing task."""
+    print("\n--- UPDATE TASK ---")
+    tasks = service.list_tasks()
+    if not tasks:
+        print("No tasks to update.")
+        return
 
-def handle_update(args: argparse.Namespace) -> int:
-    """
-    Handle the 'update' command.
+    print(render_table(tasks))
 
-    Args:
-        args: Parsed arguments from argparse
-
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
-
-    # Validate ID
-    task_id, error = validate_id(str(args.id))
+    task_id_input = get_input("\nEnter task ID to update: ")
+    task_id, error = validate_id(task_id_input)
     if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
+        print(f"Error: {error}")
+        return
 
-    # Check at least one field is provided
-    if not args.title and not args.description and not args.priority:
-        print("Error: At least one field (--title, --description, --priority) must be specified", file=sys.stderr)
-        return 1
+    task = service.get_task(task_id)  # type: ignore[arg-type]
+    if not task:
+        print(f"Error: Task with ID {task_id} not found.")
+        return
 
-    # Parse priority if provided
+    print(f"\nCurrent: {task.title} | {task.description} | {task.priority.value}")
+
+    new_title = get_input("Enter new title (press Enter to keep current): ")
+    new_desc = get_input("Enter new description (press Enter to keep current): ")
+    priority_input = get_input("Enter new priority (high/medium/low, press Enter to keep current): ").lower()
+
     priority = None
-    if args.priority:
+    if priority_input:
         try:
-            priority = Priority.parse(args.priority)
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
+            priority = Priority.parse(priority_input)
+        except ValueError:
+            print("Invalid priority. Keeping current.")
 
-    # Update task
     task, error = service.update_task(
         task_id=task_id,  # type: ignore[arg-type]
-        title=args.title,
-        description=args.description,
+        title=new_title if new_title else None,
+        description=new_desc if new_desc else None,
         priority=priority,
     )
 
     if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
-
-    print("Task updated successfully!")
-    print(f"ID: {task.id}")
-    print(f"Title: {task.title}")
-    print(f"Description: {task.description}")
-    print(f"Priority: {task.priority.value}")
-    print(f"Status: {task.status.value}")
-    print(f"Created: {format_datetime(task.created_at)}")
-
-    return 0
+        print(f"Error: {error}")
+    else:
+        print(f"\nTask updated successfully!")
 
 
-def handle_delete(args: argparse.Namespace) -> int:
-    """
-    Handle the 'delete' command.
+def complete_task(service: TodoService) -> None:
+    """Mark a task as complete."""
+    print("\n--- MARK COMPLETE ---")
+    tasks = service.list_tasks()
+    if not tasks:
+        print("No tasks to complete.")
+        return
 
-    Args:
-        args: Parsed arguments from argparse
+    pending = service.filter_by_status(Status.PENDING)
+    if not pending:
+        print("All tasks are already completed!")
+        return
 
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
+    print(render_table(pending))
 
-    # Validate ID
-    task_id, error = validate_id(str(args.id))
+    task_id_input = get_input("\nEnter task ID to mark as complete: ")
+    task_id, error = validate_id(task_id_input)
     if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
+        print(f"Error: {error}")
+        return
 
-    # Delete task
-    task, error = service.delete_task(task_id)  # type: ignore[arg-type]
-
-    if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
-
-    print("Task deleted successfully!")
-    print(f"ID: {task.id}")
-    print(f"Title: {task.title}")
-
-    return 0
-
-
-def handle_complete(args: argparse.Namespace) -> int:
-    """
-    Handle the 'complete' command.
-
-    Args:
-        args: Parsed arguments from argparse
-
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
-
-    # Validate ID
-    task_id, error = validate_id(str(args.id))
-    if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
-
-    # Complete task
     task, error = service.complete_task(task_id)  # type: ignore[arg-type]
 
     if error:
-        print(f"Error: {error}", file=sys.stderr)
-        return 1
-
-    print("Task marked as complete!")
-    print(f"ID: {task.id}")
-    print(f"Title: {task.title}")
-    print(f"Status: {task.status.value}")
-
-    return 0
+        print(f"Error: {error}")
+    else:
+        print(f"\nTask marked as complete!")
+        print(f"ID: {task.id} | Title: {task.title} | Status: {task.status.value}")
 
 
-def handle_filter(args: argparse.Namespace) -> int:
-    """
-    Handle the 'filter' command.
+def delete_task(service: TodoService) -> None:
+    """Delete a task."""
+    print("\n--- DELETE TASK ---")
+    tasks = service.list_tasks()
+    if not tasks:
+        print("No tasks to delete.")
+        return
 
-    Args:
-        args: Parsed arguments from argparse
+    print(render_table(tasks))
 
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
-    service = TodoService()
+    task_id_input = get_input("\nEnter task ID to delete: ")
+    task_id, error = validate_id(task_id_input)
+    if error:
+        print(f"Error: {error}")
+        return
 
-    # Parse priority
+    confirm = get_input(f"Delete task {task_id}? (y/n): ").lower()
+    if confirm != 'y':
+        print("Delete cancelled.")
+        return
+
+    task, error = service.delete_task(task_id)  # type: ignore[arg-type]
+
+    if error:
+        print(f"Error: {error}")
+    else:
+        print(f"\nTask deleted!")
+        print(f"ID: {task.id} | Title: {task.title}")
+
+
+def filter_by_priority(service: TodoService) -> None:
+    """Filter tasks by priority."""
+    print("\n--- FILTER BY PRIORITY ---")
+    print("Options: high, medium, low")
+    priority_input = get_input("Enter priority to filter: ").lower()
+
     try:
-        priority = Priority.parse(args.priority)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        priority = Priority.parse(priority_input)
+    except ValueError:
+        print("Error: Invalid priority!")
+        return
 
-    # Filter tasks
     tasks = service.filter_by_priority(priority)
 
-    # Render output
-    if args.json:
-        import json
-        data = [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "priority": t.priority.value,
-                "status": t.status.value,
-                "created": format_datetime(t.created_at),
-            }
-            for t in tasks
-        ]
-        print(json.dumps(data, indent=2))
+    print(f"\nTasks with priority: {priority.value}")
+    if not tasks:
+        print("No tasks found with this priority.")
     else:
-        if tasks:
-            print(render_table(tasks))
-        else:
-            print(f"No tasks found with priority: {priority.value}")
-
-    return 0
+        print(render_table(tasks))
 
 
-def handle_search(args: argparse.Namespace) -> int:
-    """
-    Handle the 'search' command.
+def search_tasks(service: TodoService) -> None:
+    """Search tasks by keyword."""
+    print("\n--- SEARCH TASKS ---")
+    keyword = get_input("Enter search keyword: ")
 
-    Args:
-        args: Parsed arguments from argparse
+    if not keyword:
+        print("Error: Please enter a keyword!")
+        return
 
-    Returns:
-        Exit code (0 for success, 1 for error)
-    """
+    tasks = service.search_tasks(keyword)
+
+    print(f"\nResults for '{keyword}':")
+    if not tasks:
+        print("No tasks found matching your search.")
+    else:
+        print(render_table(tasks))
+
+
+def run_interactive() -> None:
+    """Run the interactive todo application."""
     service = TodoService()
 
-    # Search tasks
-    tasks = service.search_tasks(args.keyword)
+    while True:
+        print_banner()
+        print_menu()
 
-    # Render output
-    if args.json:
-        import json
-        data = [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "priority": t.priority.value,
-                "status": t.status.value,
-                "created": format_datetime(t.created_at),
-            }
-            for t in tasks
-        ]
-        print(json.dumps(data, indent=2))
-    else:
-        if tasks:
-            print(render_table(tasks))
+        choice = get_input("Enter your choice (0-9): ")
+
+        if choice == "0":
+            print("\nGoodbye! Thanks for using Todo App!")
+            break
+        elif choice == "1":
+            add_task(service)
+        elif choice == "2":
+            view_tasks(service)
+        elif choice == "3":
+            view_tasks(service, filter_status=Status.PENDING)
+        elif choice == "4":
+            view_tasks(service, filter_status=Status.COMPLETED)
+        elif choice == "5":
+            update_task(service)
+        elif choice == "6":
+            complete_task(service)
+        elif choice == "7":
+            delete_task(service)
+        elif choice == "8":
+            filter_by_priority(service)
+        elif choice == "9":
+            search_tasks(service)
         else:
-            print(f"No tasks found matching: {args.keyword}")
+            print("\nInvalid choice! Please enter a number from 0 to 9.")
 
-    return 0
-
-
-def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser for the todo CLI."""
-    parser = argparse.ArgumentParser(
-        prog="todo",
-        description="Professional In-Memory Python Todo CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # add command
-    add_parser = subparsers.add_parser("add", help="Add a new task")
-    add_parser.add_argument("title", help="Task title (1-200 characters)")
-    add_parser.add_argument("-d", "--description", help="Task description (0-1000 characters)")
-    add_parser.add_argument("-p", "--priority", choices=["high", "medium", "low", "h", "m", "l"],
-                           help="Task priority (default: medium)")
-    add_parser.set_defaults(handler=handle_add)
-
-    # list command
-    list_parser = subparsers.add_parser("list", help="List all tasks")
-    list_parser.add_argument("-s", "--status", choices=["pending", "completed", "all"],
-                            default="all", help="Filter by status (default: all)")
-    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    list_parser.set_defaults(handler=handle_list)
-
-    # update command
-    update_parser = subparsers.add_parser("update", help="Update a task")
-    update_parser.add_argument("id", help="Task ID to update")
-    update_parser.add_argument("-t", "--title", help="New task title")
-    update_parser.add_argument("-d", "--description", help="New task description")
-    update_parser.add_argument("-p", "--priority", choices=["high", "medium", "low", "h", "m", "l"],
-                              help="New task priority")
-    update_parser.set_defaults(handler=handle_update)
-
-    # delete command
-    delete_parser = subparsers.add_parser("delete", help="Delete a task")
-    delete_parser.add_argument("id", help="Task ID to delete")
-    delete_parser.set_defaults(handler=handle_delete)
-
-    # complete command
-    complete_parser = subparsers.add_parser("complete", help="Mark a task as complete")
-    complete_parser.add_argument("id", help="Task ID to complete")
-    complete_parser.set_defaults(handler=handle_complete)
-
-    # filter command
-    filter_parser = subparsers.add_parser("filter", help="Filter tasks by priority")
-    filter_parser.add_argument("priority", choices=["high", "medium", "low", "h", "m", "l"],
-                              help="Priority level to filter by")
-    filter_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    filter_parser.set_defaults(handler=handle_filter)
-
-    # search command
-    search_parser = subparsers.add_parser("search", help="Search tasks by keyword")
-    search_parser.add_argument("keyword", help="Search keyword")
-    search_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    search_parser.set_defaults(handler=handle_search)
-
-    return parser
+        input("\nPress Enter to continue...")
 
 
 def main() -> int:
-    """Main entry point for the todo CLI."""
-    parser = create_parser()
-    args = parser.parse_args()
-
-    if not hasattr(args, "handler"):
-        parser.print_help()
-        return 1
-
-    return args.handler(args)
+    """Main entry point."""
+    run_interactive()
+    return 0
 
 
 if __name__ == "__main__":
