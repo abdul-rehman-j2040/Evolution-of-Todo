@@ -90,14 +90,24 @@ As a user with many tasks, I need to search for tasks by keywords in their title
 
 ### Edge Cases
 
-- What happens when a user attempts to add a task with an empty title?
-- What happens when a user attempts to add a task with a title exceeding 200 characters?
-- What happens when a user attempts to add a task with a description exceeding 1000 characters?
+- What happens when a user attempts to add a task with an empty title? (TodoService validates and returns error tuple)
+- What happens when a user attempts to add a task with a title exceeding 200 characters? (TodoService validates and returns error tuple)
+- What happens when a user attempts to add a task with a description exceeding 1000 characters? (TodoService validates and returns error tuple)
 - How does the system handle concurrent operations (not applicable for single-user CLI, but important for Phase II evolution)?
-- What happens when filtering by an invalid priority value?
+- What happens when filtering by an invalid priority value? (TodoService returns empty list or error tuple)
 - What happens when the task list contains 1000+ tasks (performance consideration)?
-- How does search handle special characters and punctuation?
-- What happens if two tasks are created at the exact same timestamp?
+- How does search handle special characters and punctuation? (Case-insensitive substring matching, special chars treated as literals)
+- What happens if two tasks are created at the exact same timestamp? (Both valid, IDs remain unique)
+
+## Clarifications
+
+### Session 2025-01-01
+
+- Q: How should users interact with the CLI application? → A: Single-command execution (argparse style) - Each operation is a separate command like `todo add "title"`, `todo list`, `todo delete 5` (similar to git, docker CLI). This aligns with Unix philosophy, supports scripting, and maps cleanly to Phase II API endpoints.
+- Q: What data structure should represent the Todo entity in Phase I? → A: Python dataclass with type hints - Native Python 3.10+ feature providing automatic methods (__init__, __repr__, __eq__), full type safety, lightweight for in-memory use, and easy to extend for Phase II serialization.
+- Q: Should TodoService methods be synchronous or asynchronous in Phase I? → A: Synchronous methods (no async/await) - Phase I has no I/O operations (in-memory only), so async adds unnecessary complexity. Phase II FastAPI handlers can easily wrap synchronous service methods in async endpoints.
+- Q: How should TodoService communicate errors to the CLI layer? → A: Return type with Optional/Result pattern - Methods return `Optional[Todo]` or tuple `(success_data, error_msg)`. Explicit, type-safe error handling that forces CLI to handle error cases and maps cleanly to Phase II HTTP status codes.
+- Q: How should TodoService store and manage the task collection internally? → A: Instance attribute (list of Todo objects) - `self._tasks: List[Todo] = []` managed by TodoService instance. Clean encapsulation, easy to test, and Phase II compatible with dependency injection.
 
 ## Requirements *(mandatory)*
 
@@ -117,14 +127,14 @@ As a user with many tasks, I need to search for tasks by keywords in their title
 - **FR-012**: System MUST allow users to search for tasks by keyword, matching against title or description (case-insensitive)
 - **FR-013**: System MUST validate that task titles are between 1 and 200 characters
 - **FR-014**: System MUST validate that task descriptions do not exceed 1000 characters
-- **FR-015**: System MUST display clear error messages when users attempt to update, delete, or mark complete a non-existent task ID
-- **FR-016**: System MUST store all tasks in-memory using Python data structures (lists/dictionaries)
-- **FR-017**: System MUST provide a command-line interface (CLI) for all user interactions
-- **FR-018**: System MUST separate business logic (TodoService) from CLI interface code
+- **FR-015**: System MUST display clear error messages when users attempt to update, delete, or mark complete a non-existent task ID (TodoService returns None or error tuple, CLI formats and displays message)
+- **FR-016**: System MUST store all tasks in-memory using Python data structures (TodoService maintains `List[Todo]` as instance attribute)
+- **FR-017**: System MUST provide a command-line interface (CLI) for all user interactions using single-command execution pattern (e.g., `todo add "title"`, `todo list`, `todo delete 5`)
+- **FR-018**: System MUST separate business logic (TodoService) from CLI interface code using synchronous methods (in-memory operations only, no async required)
 
 ### Key Entities
 
-- **Todo**: Represents a single task/item to be completed
+- **Todo**: Represents a single task/item to be completed (implemented as Python dataclass with type hints)
   - Unique identifier (integer ID)
   - Title (string, 1-200 characters)
   - Description (string, 0-1000 characters, optional)
@@ -176,10 +186,11 @@ As a user with many tasks, I need to search for tasks by keywords in their title
 - **Python 3.10+**: Required for modern type hints syntax including union types (PEP 604)
 - **UV Package Manager**: Used for Python dependency management and virtual environment creation
 - **Standard Library Only**: Phase I relies exclusively on Python's standard library (no external dependencies required)
+  - `dataclasses` for Todo entity definition
   - `datetime` for timestamp management
   - `enum` for Priority and Status enumerations
   - `typing` for type hints
-  - `argparse` or `click` for CLI parsing (to be determined in planning phase)
+  - `argparse` for CLI parsing (single-command execution pattern)
 
 ## Out of Scope
 
