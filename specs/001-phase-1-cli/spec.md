@@ -131,6 +131,7 @@ As a user with many tasks, I need to search for tasks by keywords in their title
 - **FR-016**: System MUST store all tasks in-memory using Python data structures (TodoService maintains `List[Todo]` as instance attribute)
 - **FR-017**: System MUST provide a command-line interface (CLI) for all user interactions using single-command execution pattern (e.g., `todo add "title"`, `todo list`, `todo delete 5`)
 - **FR-018**: System MUST separate business logic (TodoService) from CLI interface code using synchronous methods (in-memory operations only, no async required)
+- **FR-019**: System MUST allow users to filter the task list by status (all, pending, completed)
 
 ### Key Entities
 
