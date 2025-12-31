@@ -67,7 +67,7 @@ These tasks provide immediate momentum and validate the development environment:
 **Parallelizable**: T-002, T-003, T-004 can run after T-001
 
 ```
-- [ ] T-001 [P] Create project directory structure per implementation plan
+- [X] T-001 [P] Create project directory structure per implementation plan
   - **Description**: Create the phase-1-cli directory structure as defined in plan.md:
     - phase-1-cli/src/ (with __init__.py)
     - phase-1-cli/src/models/ (with __init__.py)
@@ -86,7 +86,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Dependencies**: None
   - **Quick Win**: Yes - immediate validation of project structure
 
-- [ ] T-002 Create pyproject.toml with UV configuration
+- [X] T-002 Create pyproject.toml with UV configuration
   - **Description**: Create pyproject.toml with project metadata, Python version, and UV tool configuration per plan.md
   - **Inputs**: Python 3.10+ requirement, standard library only constraint
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\pyproject.toml
@@ -100,7 +100,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Time Estimate**: 5 minutes
   - **Dependencies**: T-001
 
-- [ ] T-003 Create .python-version file
+- [X] T-003 Create .python-version file
   - **Description**: Create .python-version file specifying Python 3.10
   - **Inputs**: Python 3.10+ requirement from spec.md
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\.python-version
@@ -111,7 +111,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Time Estimate**: 2 minutes
   - **Dependencies**: T-001
 
-- [ ] T-004 Verify __init__.py files for all packages
+- [X] T-004 Verify __init__.py files for all packages
   - **Description**: Ensure all __init__.py files exist with proper module docstrings
   - **Inputs**: Package structure from T-001
   - **Outputs**: 6 __init__.py files in src/, src/models/, src/services/, src/cli/, tests/unit/, tests/integration/
@@ -122,7 +122,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Time Estimate**: 3 minutes
   - **Dependencies**: T-001
 
-- [ ] T-005 Create basic README placeholder
+- [X] T-005 Create basic README placeholder
   - **Description**: Create README.md with installation instructions and usage overview from quickstart.md
   - **Inputs**: quickstart.md from contracts/ directory
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\README.md
@@ -145,7 +145,7 @@ These tasks provide immediate momentum and validate the development environment:
 **Parallelizable**: T-006 and T-007 can be done concurrently
 
 ```
-- [ ] T-006 [P] Implement Priority enum in src/models/enums.py
+- [X] T-006 [P] Implement Priority enum in src/models/enums.py
   - **Description**: Create Priority enum with HIGH, MEDIUM, LOW values inheriting from str
   - **Inputs**: data-model.md specification, Priority enum requirements
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\src\models\enums.py
@@ -160,7 +160,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Dependencies**: T-004
   - **Quick Win**: Yes - simple enum definition
 
-- [ ] T-007 [P] Implement Status enum in src/models/enums.py
+- [X] T-007 [P] Implement Status enum in src/models/enums.py
   - **Description**: Create Status enum with PENDING, COMPLETED values inheriting from str
   - **Inputs**: data-model.md specification, Status enum requirements
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\src\models\enums.py (same file as Priority)
@@ -175,7 +175,7 @@ These tasks provide immediate momentum and validate the development environment:
   - **Dependencies**: T-004
   - **Parallel With**: T-006 (can be done concurrently)
 
-- [ ] T-008 [P] Implement Todo dataclass in src/models/todo.py
+- [X] T-008 [P] Implement Todo dataclass in src/models/todo.py
   - **Description**: Create Todo dataclass with all 6 fields and full type hints
   - **Inputs**: data-model.md Todo specification, plan.md dataclass definition
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\src\models\todo.py
@@ -214,7 +214,7 @@ These tasks provide immediate momentum and validate the development environment:
 **Parallelizable**: T-010 through T-016 can run after T-009
 
 ```
-- [ ] T-009 [P] Implement TodoService.__init__() and state management
+- [X] T-009 [P] Implement TodoService.__init__() and state management
   - **Description**: Create TodoService class with _tasks list and _next_id counter
   - **Inputs**: plan.md service-layer architecture, data-model.md TodoService signatures
   - **Outputs**: D:\Hackathons\Evolution-of-Todo\phase-1-cli\src\services\todo_service.py
