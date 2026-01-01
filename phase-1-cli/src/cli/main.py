@@ -32,7 +32,7 @@ def format_datetime(dt: datetime) -> str:
 
 def render_table(tasks: List["Todo"]) -> str:
     """
-    Render tasks as an ASCII table with colors and emojis.
+    Render tasks as an ASCII table with full-row priority coloring.
 
     Args:
         tasks: List of Todo items to display
@@ -69,22 +69,46 @@ def render_table(tasks: List["Todo"]) -> str:
         f"{'-' * created_width}"
     )
 
-    # Rows with colors and emojis
+    # Rows with full-row priority coloring
     rows = []
     for task in tasks:
+        # Get priority color for entire row
+        row_color = priority_color(task.priority)
+        reset = Colors.RESET
+
+        # Truncate long text
         title = task.title[:title_width - 3] + "..." if len(task.title) > title_width - 3 else task.title
         desc = task.description[:desc_width - 3] + "..." if len(task.description) > desc_width - 3 else task.description
-        emoji = priority_emoji(task.priority)
-        colored_priority = priority_colored(task.priority.value, task.priority)
-        colored_status = status_colored(task.status.value, task.status)
+
+        # Get emoji and status
+        priority_icon = priority_emoji(task.priority)
         status_icon = status_emoji(task.status)
+        status_text = task.status.value
+
+        # Format the row with colors
+        # ID in priority color
+        id_str = f"{row_color}{task.id:<{id_width}}{reset}"
+        # Title in priority color
+        title_str = f"{row_color}{title:<{title_width}}{reset}"
+        # Description in priority color
+        desc_str = f"{row_color}{desc:<{desc_width}}{reset}"
+        # Priority with icon and color
+        priority_str = f"{row_color}{priority_icon} {task.priority.value:<{priority_width - 2}}{reset}"
+        # Status with icon and green/red color
+        if task.status == Status.COMPLETED:
+            status_str = f"{Colors.GREEN}{status_icon} {status_text:<{status_width - 2}}{reset}"
+        else:
+            status_str = f"{Colors.YELLOW}{status_icon} {status_text:<{status_width - 2}}{reset}"
+        # Created date in priority color
+        created_str = f"{row_color}{format_datetime(task.created_at):<{created_width}}{reset}"
+
         rows.append(
-            f"{task.id:<{id_width}} | "
-            f"{title:<{title_width}} | "
-            f"{desc:<{desc_width}} | "
-            f"{emoji} {colored_priority:<{priority_width - 2}} | "
-            f"{status_icon} {colored_status:<{status_width - 2}} | "
-            f"{format_datetime(task.created_at):<{created_width}}"
+            f"{id_str} | "
+            f"{title_str} | "
+            f"{desc_str} | "
+            f"{priority_str} | "
+            f"{status_str} | "
+            f"{created_str}"
         )
 
     return "\n".join([header, separator] + rows)
