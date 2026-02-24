@@ -176,7 +176,7 @@ Then: Task appears in task list with ID, title, description, status "pending"
 ## Technology Stack
 
 ### Phase I: In-Memory Python Console App
-- **Language**: Python 3.13+
+- **Language**: Python 3.10+
 - **Package Manager**: UV
 - **Storage**: In-memory data structures (dict, list)
 - **CLI Framework**: argparse or Click
